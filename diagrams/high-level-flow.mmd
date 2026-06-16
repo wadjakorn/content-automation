@@ -1,0 +1,25 @@
+flowchart TD
+  A["Idea backlog"] --> S["Score and prioritize<br>fit, demand, novelty, effort"]
+  S --> P["Planning<br>calendar + publish timing"]
+  P --> SC["Script + storyboard"]
+  SC --> G1["Gate 1: post-script<br>policy, tone, fact-check"]
+  G1 -->|"pass"| PR["Production<br>film + edit"]
+  G1 -->|"flag"| HR["Human review"]
+  HR --> SC
+  PR --> M["Metadata<br>title + thumbnail"]
+  M --> G2["Gate 2: post-edit<br>reputational + disclosure"]
+  G2 -->|"flag"| HR
+  G2 -->|"pass"| G3["Gate 3: pre-publish<br>final risk + timing"]
+  G3 --> PUB["Publish<br>YouTube, IG, TikTok"]
+  PUB --> MON["Post-publish monitor<br>sentiment + velocity"]
+  MON -->|"backlash"| PB["Backlash playbook"]
+  MON --> FB["Feedback + calibration"]
+  PB --> FB
+  FB -.->|"new ideas"| A
+  FB -.->|"tune signals"| S
+  classDef score fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+  classDef gate fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+  classDef monitor fill:#FAEEDA,stroke:#854F0B,color:#412402
+  class S score
+  class G1,G2,G3 gate
+  class MON,PB monitor

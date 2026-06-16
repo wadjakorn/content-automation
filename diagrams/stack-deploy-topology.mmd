@@ -1,0 +1,38 @@
+%% Phase-0 deploy topology (now) → Mac M5 (future)
+%% Source spec: docs/superpowers/specs/2026-06-16-stack-tools-design.md
+%% Dashed = future migration. Grey = deferred component.
+flowchart TD
+  subgraph HOME["Home — UPS-backed"]
+    subgraph PI["Raspberry Pi 4B (now) — docker-compose"]
+      C1["postgres + pgvector"]
+      C2["redis"]
+      C3["arq worker"]
+      C4["fastapi + uvicorn"]
+      C5["cloudflared"]
+    end
+    subgraph MAC["Mac M5 (future)"]
+      M1["compute<br>(arq + fastapi move here)"]
+      M2["local LLM container<br>MLX / Ollama (phase 2)"]
+    end
+    NAS["NAS DS723+<br>SMB backup (day one)"]
+  end
+
+  TUN["Cloudflare Tunnel<br>single inbound · outbound-only"]
+  PAPI["Platform APIs<br>YouTube Data API v3"]
+  FAPI["Frontier API<br>Claude"]
+
+  C5 --- TUN
+  TUN --> PAPI
+  TUN --> FAPI
+  PI -->|backup| NAS
+  C4 -.->|"Mac M5 arrives:<br>move compute"| M1
+  PI -.->|"Pi demotes to<br>heartbeat + tunnel 24/7"| MAC
+  MAC -->|backup| NAS
+
+  classDef data fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+  classDef ext fill:#FAEEDA,stroke:#854F0B,color:#412402
+  classDef deferred fill:#EEEEEE,stroke:#999999,color:#555555,stroke-dasharray:4 3
+
+  class C1,C2,C3,C4,C5,NAS data
+  class TUN,PAPI,FAPI ext
+  class M1,M2 deferred

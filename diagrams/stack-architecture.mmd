@@ -1,0 +1,41 @@
+%% Phase-0 service / component architecture
+%% Source spec: docs/superpowers/specs/2026-06-16-stack-tools-design.md
+%% Scope: consistency engine + hard-rules gate. Grey = deferred (later phase).
+flowchart TD
+  CF["Cloudflare Tunnel<br>(cloudflared) — single ingress"]
+  API["FastAPI + uvicorn<br>OAuth callback · YT webhooks · control"]
+  REDIS["Redis<br>(broker)"]
+  WORK["arq worker<br>score → plan → script → gate → schedule"]
+  GATE["Hard-rules gate (keyword)<br>health-claim → HOLD<br>no disclosure → block<br>emits lane-d-context verdict"]
+  LLMC["LLMClient protocol<br>generate() · judge()"]
+  CLAUDE["Claude — anthropic SDK<br>(Frontier API)"]
+  ORM["SQLAlchemy 2.0 (async)<br>+ Alembic"]
+  PG["Postgres 16 + pgvector<br>KB · content state<br>Fernet-encrypted tokens"]
+  PADAPT["PlatformAdapter ABC<br>+ capability flags"]
+  YT["YouTubeAdapter<br>google-api-python-client<br>publishAt · commentThreads.list"]
+  YTAPI["YouTube Data API v3"]
+  STUB["IG / TikTok adapters<br>(stubs — phase 2)"]
+
+  CF --> API
+  API -->|enqueue| REDIS
+  REDIS --> WORK
+  WORK --> GATE
+  WORK --> LLMC
+  LLMC --> CLAUDE
+  WORK --> ORM
+  GATE --> ORM
+  ORM --> PG
+  WORK --> PADAPT
+  PADAPT --> YT
+  PADAPT -.-> STUB
+  YT --> YTAPI
+
+  classDef data fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+  classDef gate fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+  classDef ext fill:#FAEEDA,stroke:#854F0B,color:#412402
+  classDef deferred fill:#EEEEEE,stroke:#999999,color:#555555,stroke-dasharray:4 3
+
+  class PG,ORM data
+  class GATE gate
+  class CLAUDE,YTAPI,CF ext
+  class STUB deferred

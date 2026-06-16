@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LaneA.PolicySafetyVerdict",
+  "type": "object",
+  "required": ["surface", "verdict", "categories", "requires_human"],
+  "properties": {
+    "surface": { "enum": ["script", "transcript", "ocr", "thumbnail", "title"] },
+    "verdict": { "enum": ["pass", "flag", "hold"] },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "stance", "score"],
+        "properties": {
+          "type": { "enum": ["identity_attack", "hate_speech", "slur", "threat", "dehumanization"] },
+          "stance": { "enum": ["discussing", "quoting", "criticizing", "endorsing", "attacking"] },
+          "score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "evidence": { "type": "string" },
+          "target_group": { "type": "string" }
+        }
+      }
+    },
+    "suggested_fix": { "type": "string" },
+    "requires_human": { "type": "boolean" }
+  }
+}

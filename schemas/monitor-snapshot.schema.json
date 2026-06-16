@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PostPublishMonitorSnapshot",
+  "type": "object",
+  "required": ["item_id", "platform", "sampled_at", "since_publish_min", "signals", "alert_tier"],
+  "properties": {
+    "item_id": { "type": "string" },
+    "platform": { "enum": ["youtube", "instagram", "tiktok"] },
+    "sampled_at": { "type": "string", "format": "date-time" },
+    "since_publish_min": { "type": "integer", "minimum": 0 },
+    "signals": {
+      "type": "object",
+      "properties": {
+        "engagement_velocity_vs_baseline": { "type": "number" },
+        "neg_sentiment_velocity_vs_baseline": { "type": "number" },
+        "comment_intent_mix": {
+          "type": "object",
+          "properties": {
+            "praise": { "type": "number" },
+            "correction": { "type": "number" },
+            "question": { "type": "number" },
+            "request": { "type": "number" },
+            "complaint": { "type": "number" },
+            "troll": { "type": "number" }
+          }
+        },
+        "clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["kind", "size"],
+            "properties": {
+              "kind": { "enum": ["factual_correction", "offense", "controversy", "feature_request", "faq"] },
+              "size": { "type": "integer" },
+              "summary": { "type": "string" },
+              "links_to_lane": { "enum": ["A", "B", "C", "D", null] }
+            }
+          }
+        }
+      }
+    },
+    "alert_tier": { "enum": ["L0", "L1", "L2", "L3"] },
+    "proposed_actions": {
+      "type": "array",
+      "items": { "enum": ["log_only", "draft_pinned_correction", "draft_response", "suggest_pin", "suggest_edit_metadata", "suggest_unlist"] }
+    },
+    "requires_human": { "type": "boolean" },
+    "baseline_mode": { "enum": ["learning", "active"] }
+  }
+}

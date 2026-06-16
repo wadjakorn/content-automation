@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LaneD.ContextTimingVerdict",
+  "type": "object",
+  "required": ["checks", "reputational_risk"],
+  "properties": {
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "hard", "severity", "action"],
+        "properties": {
+          "type": { "enum": ["disclosure", "sensitivity", "consistency"] },
+          "hard": { "type": "boolean" },
+          "severity": { "enum": ["low", "medium", "high"] },
+          "evidence": { "type": "string" },
+          "action": { "enum": ["pass", "advisory", "suggest_reschedule", "block_until_disclosed", "hold"] }
+        }
+      }
+    },
+    "reputational_risk": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

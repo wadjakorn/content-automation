@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LaneB.ToneBrandAdvisory",
+  "type": "object",
+  "required": ["surface", "pattern", "severity", "decision"],
+  "properties": {
+    "surface": { "enum": ["script", "transcript", "ocr", "title", "thumbnail"] },
+    "pattern": { "enum": ["condescension", "punching_down", "gatekeeping", "unwarranted_absolutism", "sneer"] },
+    "severity": { "enum": ["low", "medium"] },
+    "span": { "type": "string" },
+    "why_it_risks": { "type": "string" },
+    "on_brand_alt": { "type": "string" },
+    "decision": { "const": "advisory" }
+  }
+}
