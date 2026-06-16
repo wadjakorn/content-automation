@@ -39,5 +39,5 @@ class ClaudeClient:
         )
         for block in resp.content:
             if getattr(block, "type", "") == "tool_use":
-                return schema.model_validate(getattr(block, "input"))
+                return schema.model_validate(block.input)  # type: ignore[union-attr]
         raise ValueError("no tool_use block in Claude response")
