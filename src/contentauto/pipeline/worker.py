@@ -58,6 +58,7 @@ async def run_item(ctx: dict[str, Any], item_id: int) -> dict[str, Any]:
         await session.flush()
         return {"blocked": True, "reason": str(exc)}
 
+    item.scheduled_at = publish_at
     item.state = ContentState.scheduled
     await session.flush()
     return {"blocked": False, "state": item.state.value}

@@ -54,3 +54,4 @@ async def test_run_item_job_commits_scheduled(session_maker):
         refreshed = await s.get(ContentItem, item_id)
         assert refreshed.state == ContentState.scheduled
         assert refreshed.score == 1.0  # technology pillar weight
+        assert refreshed.scheduled_at is not None  # publish_at persisted to row
