@@ -20,7 +20,7 @@ class NewItem(BaseModel):
     pillar: str
 
 
-def create_app(queue: Any | None = None) -> FastAPI:
+def create_app(queue: Any | None = None, session_maker: Any | None = None) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if queue is None:
@@ -40,6 +40,13 @@ def create_app(queue: Any | None = None) -> FastAPI:
                 app.state.queue = None
         else:
             app.state.queue = queue
+
+        if session_maker is None:
+            from contentauto.db import session_factory
+
+            app.state.session_maker = session_factory()
+        else:
+            app.state.session_maker = session_maker
         yield
 
     app = FastAPI(title="content-automation phase-0", lifespan=lifespan)
@@ -50,13 +57,25 @@ def create_app(queue: Any | None = None) -> FastAPI:
 
     @app.post("/items", status_code=202)
     async def create_item(body: NewItem, request: Request) -> dict[str, Any]:
+        from contentauto.models.content import ContentItem, ContentState
+
         q = queue if queue is not None else getattr(request.app.state, "queue", None)
         if q is None:
             raise HTTPException(status_code=503, detail="job queue unavailable (Redis down)")
-        # Phase-0: enqueue by title placeholder. Real impl persists a
-        # ContentItem(state=idea) first and enqueues its id (follow-up).
-        job = await q.enqueue_job("run_item", body.title)
-        return {"job_id": job.job_id, "title": body.title}
+        sm = session_maker or getattr(request.app.state, "session_maker", None)
+        if sm is None:
+            raise HTTPException(status_code=503, detail="database unavailable")
+
+        async with sm() as session:
+            item = ContentItem(
+                title=body.title, pillar=body.pillar, state=ContentState.idea
+            )
+            session.add(item)
+            await session.commit()
+            item_id = item.id
+
+        job = await q.enqueue_job("run_item_job", item_id)
+        return {"job_id": job.job_id, "item_id": item_id}
 
     return app
 

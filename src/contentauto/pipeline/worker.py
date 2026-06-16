@@ -63,6 +63,24 @@ async def run_item(ctx: dict[str, Any], item_id: int) -> dict[str, Any]:
     return {"blocked": False, "state": item.state.value}
 
 
+async def run_item_job(ctx: dict[str, Any], item_id: int) -> dict[str, Any]:
+    """Production arq entrypoint: open a session, build per-job ctx, commit.
+
+    ``run_item`` stays session-agnostic (tests inject their own session); this
+    wrapper owns the session lifecycle and commit so a real job persists.
+    """
+    session_maker = ctx["session_maker"]
+    async with session_maker() as session:
+        job_ctx = {
+            "session": session,
+            "adapter": ctx["adapter"],
+            "llm": ctx.get("llm"),
+        }
+        result = await run_item(job_ctx, item_id)
+        await session.commit()
+    return result
+
+
 # ---------------------------------------------------------------------------
 # arq startup / WorkerSettings — resolved LAZILY so bare import needs no envs
 # ---------------------------------------------------------------------------
@@ -73,10 +91,14 @@ async def startup(ctx: dict[str, Any]) -> None:
     from contentauto.db import session_factory
     from contentauto.llm.claude import ClaudeClient
 
+    from contentauto.platforms.local import LocalAdapter
+
     s = get_settings()
     ctx["session_maker"] = session_factory()
     ctx["llm"] = ClaudeClient(api_key=s.anthropic_api_key, model=s.anthropic_model)
-    # adapter is built per-job from stored OAuth creds (see api/app.py)
+    # No stored OAuth creds yet → LocalAdapter (no external API). Swap for
+    # YouTubeAdapter built from decrypted creds once OAuth routes land.
+    ctx["adapter"] = LocalAdapter()
 
 
 def build_worker_settings() -> type:
@@ -91,7 +113,7 @@ def build_worker_settings() -> type:
     from contentauto.config import get_settings
 
     class WorkerSettings:
-        functions = [run_item]
+        functions = [run_item_job]
         on_startup = startup
         redis_settings = RedisSettings.from_dsn(get_settings().redis_url)
 
