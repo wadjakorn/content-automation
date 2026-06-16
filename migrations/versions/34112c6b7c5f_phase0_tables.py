@@ -24,7 +24,8 @@ content_state = sa.Enum(
 
 def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS vector")
-    content_state.create(op.get_bind(), checkfirst=True)
+    # The content_state enum type is created implicitly by the first create_table
+    # that references it, and dropped by the matching drop_table in downgrade().
     op.create_table(
         "content_items",
         sa.Column("id", sa.Integer(), primary_key=True),
@@ -57,5 +58,5 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_table("oauth_tokens")
     op.drop_table("kb_entries")
+    # Dropping content_items also drops the content_state enum type it owns.
     op.drop_table("content_items")
-    content_state.drop(op.get_bind(), checkfirst=True)
