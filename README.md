@@ -42,3 +42,14 @@ claude          # Claude Code จะอ่าน CLAUDE.md อัตโนมั
 ```
 แล้วสั่งงานได้เลย เช่น "ออกแบบ post-publish monitor แล้วเขียนลง docs/" หรือ
 "เริ่ม scaffold build/ ตาม phase 0".
+
+## Connect YouTube (OAuth)
+ต้องมี Google Cloud OAuth client (Web) + เปิด YouTube Data API v3. ใส่ลง `.env`
+(อย่า commit — hard rule): `YT_CLIENT_ID`, `YT_CLIENT_SECRET`, `YT_REDIRECT_URI`
+(redirect ต้องตรง route `/oauth/youtube/callback` เป๊ะ).
+
+1. เปิด `GET /oauth/youtube/login` → redirect ไปหน้า consent ของ Google.
+2. อนุมัติ → Google เด้งกลับ `/oauth/youtube/callback` → token (offline + refresh)
+   ถูก Fernet-encrypt แล้วเก็บใน `oauth_tokens` (`TokenCipher`, ไม่มี plaintext).
+3. arq worker startup จะโหลด token → สร้าง `YouTubeAdapter` อัตโนมัติ;
+   ถ้ายังไม่ connect → fallback `LocalAdapter` (no-op, ระบบยัง run ได้).

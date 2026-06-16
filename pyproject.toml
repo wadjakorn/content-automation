@@ -40,6 +40,11 @@ python_version = "3.12"
 strict = true
 plugins = ["pydantic.mypy"]
 
+[[tool.mypy.overrides]]
+# google-auth-oauthlib / google-api-python-client ship no type stubs
+module = ["google.*", "google_auth_oauthlib.*", "googleapiclient.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]

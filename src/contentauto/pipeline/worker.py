@@ -86,20 +86,34 @@ async def run_item_job(ctx: dict[str, Any], item_id: int) -> dict[str, Any]:
 # arq startup / WorkerSettings — resolved LAZILY so bare import needs no envs
 # ---------------------------------------------------------------------------
 
+async def build_adapter(session_maker: Any, cipher: Any) -> Any:
+    """Stored YouTube OAuth token → live YouTubeAdapter; none → LocalAdapter.
+
+    Keeps the worker runnable before OAuth is connected (LocalAdapter no-ops),
+    and upgrades automatically once a token has been stored via the OAuth routes.
+    """
+    from contentauto.platforms import token_store, youtube_auth
+    from contentauto.platforms.local import LocalAdapter
+
+    async with session_maker() as session:
+        token_json = await token_store.load_token(session, cipher, "youtube")
+    if token_json is None:
+        return LocalAdapter()
+    return youtube_auth.adapter_from_json(token_json)
+
+
 async def startup(ctx: dict[str, Any]) -> None:
     """Populate shared resources in the arq worker context."""
     from contentauto.config import get_settings
+    from contentauto.crypto import TokenCipher
     from contentauto.db import session_factory
     from contentauto.llm.claude import ClaudeClient
 
-    from contentauto.platforms.local import LocalAdapter
-
     s = get_settings()
-    ctx["session_maker"] = session_factory()
+    session_maker = session_factory()
+    ctx["session_maker"] = session_maker
     ctx["llm"] = ClaudeClient(api_key=s.anthropic_api_key, model=s.anthropic_model)
-    # No stored OAuth creds yet → LocalAdapter (no external API). Swap for
-    # YouTubeAdapter built from decrypted creds once OAuth routes land.
-    ctx["adapter"] = LocalAdapter()
+    ctx["adapter"] = await build_adapter(session_maker, TokenCipher(s.fernet_key))
 
 
 def build_worker_settings() -> type:
