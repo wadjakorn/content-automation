@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
 
@@ -26,12 +26,18 @@ def create_app(queue: Any | None = None) -> FastAPI:
         if queue is None:
             from arq import create_pool
             from arq.connections import RedisSettings
+            from redis.exceptions import RedisError
 
             from contentauto.config import get_settings
 
-            app.state.queue = await create_pool(
-                RedisSettings.from_dsn(get_settings().redis_url)
-            )
+            # Resilient startup: if Redis is unreachable, the app still boots
+            # (so /healthz works in dev). /items returns 503 until the queue is up.
+            try:
+                app.state.queue = await create_pool(
+                    RedisSettings.from_dsn(get_settings().redis_url)
+                )
+            except (OSError, RedisError):
+                app.state.queue = None
         else:
             app.state.queue = queue
         yield
@@ -44,7 +50,9 @@ def create_app(queue: Any | None = None) -> FastAPI:
 
     @app.post("/items", status_code=202)
     async def create_item(body: NewItem, request: Request) -> dict[str, Any]:
-        q = queue if queue is not None else request.app.state.queue
+        q = queue if queue is not None else getattr(request.app.state, "queue", None)
+        if q is None:
+            raise HTTPException(status_code=503, detail="job queue unavailable (Redis down)")
         # Phase-0: enqueue by title placeholder. Real impl persists a
         # ContentItem(state=idea) first and enqueues its id (follow-up).
         job = await q.enqueue_job("run_item", body.title)

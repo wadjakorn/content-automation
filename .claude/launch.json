@@ -1,0 +1,16 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "uvicorn", "contentauto.api.app:app", "--host", "0.0.0.0", "--port", "8000"],
+      "port": 8000
+    },
+    {
+      "name": "worker",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "python", "-m", "contentauto.pipeline.run_worker"]
+    }
+  ]
+}
