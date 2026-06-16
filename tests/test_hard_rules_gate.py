@@ -28,3 +28,13 @@ def test_clean_script_passes():
 def test_sponsored_with_disclosure_passes():
     v = run_hard_rules(script="รีวิวหูฟัง #ได้รับสปอนเซอร์", is_sponsored=True, has_disclosure=True)
     assert all(c.action != "block_until_disclosed" for c in v.checks)
+
+
+def test_english_health_claim_holds():
+    v = run_hard_rules(
+        script="This supplement is clinically proven to cure diabetes.",
+        is_sponsored=False,
+        has_disclosure=False,
+    )
+    hold = [c for c in v.checks if c.action == "hold"]
+    assert hold and hold[0].type == "sensitivity" and hold[0].hard is True
